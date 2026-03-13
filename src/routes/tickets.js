@@ -14,7 +14,22 @@ const { triggerPowerAutomate, triggerPowerAutomateReply } = require('../services
 // Body: { title, description, priority, createdBy, userEmail, source }
 // ---------------------------------------------------------
 router.post('/', async (req, res) => {
-  const { title, description, priority, createdBy, userEmail, source } = req.body;
+  let { title, description, priority, createdBy, userEmail, source } = req.body;
+
+  // --- Clean up Teams HTML JSON if necessary ---
+  // Sometimes Teams sends the description as a stringified object like {"content":"...","contentType":"html"}
+  try {
+    if (typeof description === 'string' && description.startsWith('{')) {
+      const parsed = JSON.parse(description);
+      if (parsed.content) {
+        // Strip HTML tags for the database
+        description = parsed.content.replace(/<[^>]*>?/gm, '');
+      }
+    }
+  } catch (e) {
+    // Not a JSON string, leave it as is
+  }
+
 
   // --- Input Validation ---
   if (!title || !description || !priority || !createdBy) {
