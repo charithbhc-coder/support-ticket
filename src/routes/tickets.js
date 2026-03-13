@@ -14,7 +14,7 @@ const { triggerPowerAutomate } = require('../services/powerAutomateService');
 // Body: { title, description, priority, createdBy, userEmail, source }
 // ---------------------------------------------------------
 router.post('/', async (req, res) => {
-  let { title, description, priority, createdBy, source } = req.body;
+  let { title, description, priority, createdBy, userEmail, source } = req.body;
 
   // --- Clean up Teams HTML JSON if necessary ---
   try {
@@ -54,8 +54,8 @@ router.post('/', async (req, res) => {
     // 1) Insert ticket into MySQL
     const ticketSource = source || 'Microsoft Teams';
     const [result] = await db.execute(
-      `INSERT INTO Tickets (title, description, priority, createdBy, source) VALUES (?, ?, ?, ?, ?)`,
-      [title, description, priority, createdBy, ticketSource]
+      `INSERT INTO Tickets (title, description, priority, createdBy, userEmail, source) VALUES (?, ?, ?, ?, ?, ?)`,
+      [title, description, priority, createdBy, userEmail || null, ticketSource]
     );
 
     const insertedId = result.insertId;

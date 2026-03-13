@@ -30,6 +30,7 @@ const triggerPowerAutomate = async (ticket, type = 'ticket') => {
         ticketId:    ticket.id,
         title:       ticket.title,
         userName:    ticket.createdBy,
+        userEmail:   ticket.userEmail,
         replyText:   ticket.replyText,
         adminName:   'System Admin',
       };
