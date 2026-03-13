@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS Tickets (
     description TEXT          NOT NULL,
     priority    VARCHAR(50)   NOT NULL DEFAULT 'Medium',
     createdBy   VARCHAR(150)  NOT NULL,
-    userEmail   VARCHAR(255),
     source      VARCHAR(100)  DEFAULT 'Microsoft Teams',
     status      VARCHAR(50)   DEFAULT 'Open',
     replyText   TEXT,

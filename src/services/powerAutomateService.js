@@ -60,16 +60,11 @@ const triggerPowerAutomateReply = async (ticket) => {
     return { skipped: true };
   }
 
-  if (!ticket.userEmail) {
-    console.warn('⚠️  Ticket has no userEmail. Skipping outbound Teams notification.');
-    return { skipped: true, error: 'missing_email' };
-  }
-
   try {
     const payload = {
       ticketId:    ticket.id,
       title:       ticket.title,
-      userEmail:   ticket.userEmail,
+      userName:    ticket.createdBy,
       replyText:   ticket.replyText,
       adminName:   'System Admin'
     };
