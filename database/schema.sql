@@ -3,9 +3,9 @@
 -- MySQL Database Setup Script
 -- ============================================================
 
--- Create and use the database
-CREATE DATABASE IF NOT EXISTS ticket_management;
-USE ticket_management;
+-- Note: The CREATE DATABASE statement has been removed
+-- so this script can be safely executed directly inside
+-- your Railway MySQL 'Data' tab query editor.
 
 -- Create the Tickets table
 CREATE TABLE IF NOT EXISTS Tickets (
