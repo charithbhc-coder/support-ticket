@@ -48,4 +48,40 @@ const triggerPowerAutomate = async (ticket) => {
   }
 };
 
-module.exports = { triggerPowerAutomate };
+/**
+ * Triggers the outbound Power Automate HTTP flow with the reply data.
+ * @param {Object} ticket - The updated ticket object.
+ */
+const triggerPowerAutomateReply = async (ticket) => {
+  const replyUrl = process.env.POWER_AUTOMATE_REPLY_URL;
+
+  if (!replyUrl || replyUrl.includes('YOUR_FLOW_ID')) {
+    console.warn('⚠️  Power Automate Reply URL not configured. Skipping outbound Teams notification.');
+    return { skipped: true };
+  }
+
+  try {
+    const payload = {
+      ticketId:    ticket.id,
+      title:       ticket.title,
+      userEmail:   ticket.userEmail,
+      replyText:   ticket.replyText,
+      adminName:   'System Admin'
+    };
+
+    console.log('📤 Sending reply to Power Automate:', payload);
+
+    const response = await axios.post(replyUrl, payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000,
+    });
+
+    console.log('✅ Power Automate Reply triggered successfully. Status:', response.status);
+    return { success: true, status: response.status };
+  } catch (error) {
+    console.error('❌ Failed to trigger Power Automate Reply:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+module.exports = { triggerPowerAutomate, triggerPowerAutomateReply };

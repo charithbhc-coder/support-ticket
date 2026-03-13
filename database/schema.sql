@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS Tickets (
     description TEXT          NOT NULL,
     priority    VARCHAR(50)   NOT NULL DEFAULT 'Medium',
     createdBy   VARCHAR(150)  NOT NULL,
+    userEmail   VARCHAR(255),
+    source      VARCHAR(100)  DEFAULT 'Microsoft Teams',
+    status      VARCHAR(50)   DEFAULT 'Open',
+    replyText   TEXT,
     createdAt   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

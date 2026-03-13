@@ -7,14 +7,14 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../config/database');
-const { triggerPowerAutomate } = require('../services/powerAutomateService');
+const { triggerPowerAutomate, triggerPowerAutomateReply } = require('../services/powerAutomateService');
 
 // ---------------------------------------------------------
 // POST /api/tickets
-// Body: { title, description, priority, createdBy }
+// Body: { title, description, priority, createdBy, userEmail, source }
 // ---------------------------------------------------------
 router.post('/', async (req, res) => {
-  const { title, description, priority, createdBy } = req.body;
+  const { title, description, priority, createdBy, userEmail, source } = req.body;
 
   // --- Input Validation ---
   if (!title || !description || !priority || !createdBy) {
@@ -34,9 +34,11 @@ router.post('/', async (req, res) => {
 
   try {
     // 1) Insert ticket into MySQL
+    const ticketSource = source || 'Microsoft Teams';
+    const emailToSave = userEmail || null;
     const [result] = await db.execute(
-      `INSERT INTO Tickets (title, description, priority, createdBy) VALUES (?, ?, ?, ?)`,
-      [title, description, priority, createdBy]
+      `INSERT INTO Tickets (title, description, priority, createdBy, source, userEmail) VALUES (?, ?, ?, ?, ?, ?)`,
+      [title, description, priority, createdBy, ticketSource, emailToSave]
     );
 
     const insertedId = result.insertId;
@@ -88,6 +90,54 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching tickets.',
+      error: error.message,
+    });
+  }
+});
+
+// ---------------------------------------------------------
+// POST /api/tickets/:id/reply
+// Body: { replyText }
+// ---------------------------------------------------------
+router.post('/:id/reply', async (req, res) => {
+  const ticketId = req.params.id;
+  const { replyText } = req.body;
+
+  if (!replyText) {
+    return res.status(400).json({ success: false, message: 'replyText is required' });
+  }
+
+  try {
+    // 1. Verify ticket exists
+    const [existingRows] = await db.execute(`SELECT * FROM Tickets WHERE id = ?`, [ticketId]);
+    if (existingRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+
+    // 2. Update the ticket
+    await db.execute(
+      `UPDATE Tickets SET status = 'Replied', replyText = ? WHERE id = ?`,
+      [replyText, ticketId]
+    );
+
+    // 3. Fetch the updated ticket
+    const [updatedRows] = await db.execute(`SELECT * FROM Tickets WHERE id = ?`, [ticketId]);
+    const updatedTicket = updatedRows[0];
+
+    // 4. Trigger the outbound Power Automate notification
+    const automationResult = await triggerPowerAutomateReply(updatedTicket);
+
+    res.status(200).json({
+      success: true,
+      message: 'Reply sent successfully.',
+      ticket: updatedTicket,
+      automation: automationResult,
+    });
+  } catch (error) {
+    console.error('Error sending reply:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while replying.',
       error: error.message,
     });
   }
