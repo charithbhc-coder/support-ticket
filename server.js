@@ -13,11 +13,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ────────────────────────────────────────
-app.use(cors({
-  origin: 'http://localhost:4200', // Angular dev server
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-}));
+app.use(cors()); // Allow all origins for debugging connectivity
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
