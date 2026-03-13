@@ -17,17 +17,20 @@ router.post('/', async (req, res) => {
   let { title, description, priority, createdBy, userEmail, source } = req.body;
 
   // --- Clean up Teams HTML JSON if necessary ---
-  // Sometimes Teams sends the description as a stringified object like {"content":"...","contentType":"html"}
   try {
-    if (typeof description === 'string' && description.startsWith('{')) {
-      const parsed = JSON.parse(description);
-      if (parsed.content) {
-        // Strip HTML tags for the database
-        description = parsed.content.replace(/<[^>]*>?/gm, '');
-      }
+    let parsed = null;
+    if (typeof description === 'object' && description !== null) {
+      parsed = description;
+    } else if (typeof description === 'string' && description.trim().startsWith('{')) {
+      parsed = JSON.parse(description);
+    }
+
+    if (parsed && parsed.content) {
+      // Strip HTML tags for the database
+      description = parsed.content.replace(/<[^>]*>?/gm, '');
     }
   } catch (e) {
-    // Not a JSON string, leave it as is
+    // Not valid JSON or parsing failed, leave as is
   }
 
 
