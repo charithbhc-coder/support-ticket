@@ -7,7 +7,7 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../config/database');
-const { triggerPowerAutomate, triggerPowerAutomateReply } = require('../services/powerAutomateService');
+const { triggerPowerAutomate } = require('../services/powerAutomateService');
 
 // ---------------------------------------------------------
 // POST /api/tickets
@@ -142,7 +142,7 @@ router.post('/:id/reply', async (req, res) => {
     const updatedTicket = updatedRows[0];
 
     // 4. Trigger the outbound Power Automate notification
-    const automationResult = await triggerPowerAutomateReply(updatedTicket);
+    const automationResult = await triggerPowerAutomate(updatedTicket, 'reply');
 
     res.status(200).json({
       success: true,
