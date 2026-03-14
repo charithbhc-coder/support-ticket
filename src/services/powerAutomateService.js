@@ -1,63 +1,67 @@
 // src/services/powerAutomateService.js
 // =====================================================
 // Power Automate HTTP Trigger Service
-// Sends ticket data to Power Automate Flow
-// which then posts to Microsoft Teams
+// Two dedicated flows:
+//   POWER_AUTOMATE_TICKET_URL → new ticket → Teams channel
+//   POWER_AUTOMATE_REPLY_URL  → admin reply → Teams DM to user
 // =====================================================
 const axios = require('axios');
 require('dotenv').config();
 
 /**
- * Triggers the Power Automate HTTP flow with the ticket payload.
- * @param {Object} ticket - The ticket object to send.
- * @param {'ticket'|'reply'} type - Either 'ticket' (new ticket) or 'reply' (admin reply).
+ * Post helper — sends payload to a flow URL, logs result.
  */
-const triggerPowerAutomate = async (ticket, type = 'ticket') => {
-  const flowUrl = process.env.POWER_AUTOMATE_URL;
-
-  // If no URL is configured, log a warning and skip (useful for local dev)
-  if (!flowUrl || flowUrl.includes('YOUR_FLOW_ID')) {
-    console.warn('⚠️  Power Automate URL not configured. Skipping Teams notification.');
+const postToFlow = async (label, url, payload) => {
+  if (!url || url.includes('YOUR_FLOW')) {
+    console.warn(`⚠️  ${label} URL not configured. Skipping.`);
     return { skipped: true };
   }
-
   try {
-    let payload;
-
-    if (type === 'reply') {
-      payload = {
-        type:        'reply',
-        ticketId:    ticket.id,
-        title:       ticket.title,
-        userName:    ticket.createdBy,
-        userEmail:   ticket.userEmail,
-        replyText:   ticket.replyText,
-        adminName:   'System Admin',
-      };
-    } else {
-      payload = {
-        type:        'ticket',
-        title:       ticket.title,
-        description: ticket.description,
-        priority:    ticket.priority,
-        createdBy:   ticket.createdBy,
-      };
-    }
-
-    console.log(`📤 Sending ${type} to Power Automate:`, payload);
-
-    const response = await axios.post(flowUrl, payload, {
+    console.log(`📤 Sending ${label} to Power Automate:`, payload);
+    const response = await axios.post(url, payload, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 10000, // 10 second timeout
+      timeout: 10000,
     });
-
-    console.log(`✅ Power Automate (${type}) triggered successfully. Status:`, response.status);
+    console.log(`✅ Power Automate (${label}) triggered. Status:`, response.status);
     return { success: true, status: response.status };
   } catch (error) {
-    // Log but do NOT fail the API - Teams is a side-effect, not critical
-    console.error(`❌ Failed to trigger Power Automate (${type}):`, error.message);
+    console.error(`❌ Failed to trigger Power Automate (${label}):`, error.message);
     return { success: false, error: error.message };
   }
 };
 
-module.exports = { triggerPowerAutomate };
+/**
+ * Notify Teams channel about a new ticket.
+ * Uses POWER_AUTOMATE_TICKET_URL flow.
+ */
+const triggerTicketFlow = (ticket) => {
+  const payload = {
+    title:       ticket.title,
+    description: ticket.description,
+    priority:    ticket.priority,
+    createdBy:   ticket.createdBy,
+  };
+  return postToFlow('ticket', process.env.POWER_AUTOMATE_TICKET_URL, payload);
+};
+
+/**
+ * Send admin reply DM to the original user in Teams.
+ * Uses POWER_AUTOMATE_REPLY_URL flow.
+ */
+const triggerReplyFlow = (ticket) => {
+  const payload = {
+    userEmail:  ticket.userEmail,
+    ticketId:   ticket.id,
+    title:      ticket.title,
+    replyText:  ticket.replyText,
+    adminName:  'System Admin',
+  };
+  return postToFlow('reply', process.env.POWER_AUTOMATE_REPLY_URL, payload);
+};
+
+// Legacy wrapper — kept for any callers still using the old signature
+const triggerPowerAutomate = (ticket, type = 'ticket') => {
+  return type === 'reply' ? triggerReplyFlow(ticket) : triggerTicketFlow(ticket);
+};
+
+module.exports = { triggerPowerAutomate, triggerTicketFlow, triggerReplyFlow };
